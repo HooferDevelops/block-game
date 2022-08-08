@@ -1,0 +1,30 @@
+[package]
+name = "open_gl_rust"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+
+[dependencies.glium]
+version = "0.32.1"
+
+[dependencies.serde_json]
+version = "1.0.83"
+
+[dependencies.include_dir]
+version = "0.7.2"
+nightly = true
+
+[dependencies.spin_sleep]
+version = "1.1.1"
+
+[dependencies.image]
+version = "0.24.3"
+
+[dependencies.obj-rs]
+version = "0.7.0"
+
+[dependencies.fixedstep]
+version = "0.3.0"
