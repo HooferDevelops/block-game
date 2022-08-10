@@ -177,34 +177,6 @@ impl Game {
             ..Default::default()
         };
 
-        let uniforms = uniform! {
-            model: [
-                [1.0, 0.0, 0.0, 0.0],
-                [0.0, 1.0, 0.0, 0.0],
-                [0.0, 0.0, 1.0, 0.0],
-                [0.0, 0.0, 0.0, 1.0f32]
-            ],
-            tex: glium::uniforms::Sampler(&texture, behavior),
-
-            view: self.active_camera.transform.get_matrix(),
-            perspective: self.active_camera.get_perspective(),
-            camera_position: *self.active_camera.transform.get_position().coords.as_ref()
-        };
-
-        let uniforms1 = uniform! {
-            model: [
-                [1.0, 0.0, 0.0, 0.0],
-                [0.0, 1.0, 0.0, 0.0],
-                [0.0, 0.0, 1.0, 0.0],
-                [0.0, 0.0, 5.0, 1.0f32]
-            ],
-            tex: glium::uniforms::Sampler(&texture, behavior),
-
-            view: self.active_camera.transform.get_matrix(),
-            perspective: self.active_camera.get_perspective(),
-            camera_position: *self.active_camera.transform.get_position().coords.as_ref()
-        };
-
         let params = glium::DrawParameters {
             depth: glium::Depth {
                 test: glium::draw_parameters::DepthTest::IfLess,
@@ -215,21 +187,29 @@ impl Game {
             .. Default::default()
         };
 
-        target.draw(
-            &model.vertices, 
-            &model.indices,
-            &model.shader, 
-            &uniforms, 
-            &params
-        ).unwrap();
+        for n in 1..100 {
+            let uniforms = uniform! {
+                model: [
+                    [1.0, 0.0, 0.0, 0.0],
+                    [0.0, 1.0, 0.0, 0.0],
+                    [0.0, 0.0, 1.0, 0.0],
+                    [n as f32 * 3.0, 0.0, 0.0, 1.0f32]
+                ],
+                tex: glium::uniforms::Sampler(&texture, behavior),
+    
+                view: self.active_camera.transform.get_matrix(),
+                perspective: self.active_camera.get_perspective(),
+                camera_position: *self.active_camera.transform.get_position().coords.as_ref()
+            };
 
-        target.draw(
-            &model.vertices, 
-            &model.indices,
-            &model.shader, 
-            &uniforms1, 
-            &params
-        ).unwrap();
+            target.draw(
+                &model.vertices, 
+                &model.indices,
+                &model.shader, 
+                &uniforms, 
+                &params
+            ).unwrap();
+        }
 
         target.finish().unwrap();
     }
@@ -285,7 +265,7 @@ impl Game {
                 
                 if (self.cursor_locked == MouseState::Locked && self.window_focused) {
                     self.active_camera.transform.rotate_local(
-                        nalgebra::Vector3::new(-y_diff * 0.01 * self.delta_time, -x_diff * 0.01 * self.delta_time, 0.0)
+                        nalgebra::Vector3::new(-y_diff * 0.01, -x_diff * 0.01, 0.0)
                     );
 
                     // Clamp X rotation
