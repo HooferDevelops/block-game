@@ -40,6 +40,18 @@ impl Textures {
         Ok(true)
     }
 
+    pub fn icon_rgba8(&self, file_name: &str) -> Vec<u8> {
+        let image_name = file_name.to_owned() + ".png";
+
+        let image_source = TEXTURES.get_file(image_name.to_owned()).unwrap(); //File::open("shaders/".to_owned() + &fragment_name).unwrap();
+
+        let image_bytes = image_source.contents();
+
+        let loaded_image = image::load_from_memory(&image_bytes).unwrap().to_rgba8();
+        
+        return loaded_image.into_raw();
+    }
+
     pub fn get_texture(&mut self, texture_name: &str, display: &glium::Display) -> Result<glium::texture::SrgbTexture2d, String> {
         match self.loaded_textures.get(texture_name) {
             Some(texture) => {

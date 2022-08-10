@@ -4,6 +4,7 @@ use glium::Surface;
 use glium::glutin;
 use glium::glutin::event;
 use glium::glutin::event::VirtualKeyCode;
+use glium::glutin::platform::windows::WindowBuilderExtWindows;
 use glium::uniform;
 
 use crate::textures;
@@ -22,8 +23,15 @@ pub struct Game {
     active_keys: HashMap<VirtualKeyCode, bool>,
     active_mouse_buttons: HashMap<glutin::event::MouseButton, bool>,
     window_focused: bool,
-    cursor_locked: bool,
+    cursor_locked: MouseState,
     delta_time: f32
+}
+
+#[derive(PartialEq)]
+enum MouseState {
+    Unlocked,
+    NeedsLocked,
+    Locked
 }
 
 impl Game {
@@ -38,27 +46,31 @@ impl Game {
             active_keys: HashMap::new(),
             active_mouse_buttons: HashMap::new(),
             window_focused: true,
-            cursor_locked: true,
+            cursor_locked: MouseState::Unlocked,
             delta_time: 1.0
         }
     }
 
     // Initialize base data
     pub fn ready(&mut self) {
-        self.active_camera.set_position([0.0,0.0,0.0]);
-        //self.active_camera.set_rotation([0.0,0.0,0.0]);
+        self.active_camera.transform.set_position(nalgebra::Point3::new(0.0, 2.0, 0.0));
+        self.active_camera.transform.set_rotation(nalgebra::Vector3::new(-1.5, 0.0, 0.0));
 
         let window = self.display.as_ref().unwrap().gl_window();
         window.window().focus_window();
 
-        self.cursor_locked = true;
+        self.cursor_locked = MouseState::NeedsLocked;
     }
 
     // Create information
     pub fn create_window(&mut self, event_loop: &glutin::event_loop::EventLoop<()>, name: &str, width: u32, height: u32, _fullscreen: bool, vsync: bool) {
+        let icon_rgba = self.textures.icon_rgba8("icon");
+        let icon: Result<glutin::window::Icon, glutin::window::BadIcon> = glutin::window::Icon::from_rgba(icon_rgba, 400, 400);
+        
         let window_builder = glutin::window::WindowBuilder::new()
         .with_inner_size(glutin::dpi::LogicalSize::new(width, height))
-        .with_title(name);
+        .with_title(name)
+        .with_taskbar_icon(Some(icon.unwrap()));
 
         let context_builder = glutin::ContextBuilder::new()
         .with_depth_buffer(24)
@@ -97,46 +109,46 @@ impl Game {
     pub fn game_tick(&mut self) -> bool {
         match self.active_keys.get(&VirtualKeyCode::W) {
             Some(true) => {
-                self.active_camera.translate_local(nalgebra::Vector3::new(0.0, 0.0, 0.1));
+                self.active_camera.transform.translate_local(nalgebra::Vector3::new(0.0, 0.0, -0.1));
             },
             _ => {}
         }
 
         match self.active_keys.get(&VirtualKeyCode::S) {
             Some(true) => {
-                self.active_camera.translate_local(nalgebra::Vector3::new(0.0, 0.0, -0.1));
+                self.active_camera.transform.translate_local(nalgebra::Vector3::new(0.0, 0.0, 0.1));
             },
             _ => {}
         }
 
         match self.active_keys.get(&VirtualKeyCode::A) {
             Some(true) => {
-                self.active_camera.translate_local(nalgebra::Vector3::new(0.1, 0.0, 0.0));
+                self.active_camera.transform.translate_local(nalgebra::Vector3::new(-0.1, 0.0, 0.0));
             },
             _ => {}
         }
 
         match self.active_keys.get(&VirtualKeyCode::D) {
             Some(true) => {
-                self.active_camera.translate_local(nalgebra::Vector3::new(-0.1, 0.0, 0.0));
+                self.active_camera.transform.translate_local(nalgebra::Vector3::new(0.1, 0.0, 0.0));
             },
             _ => {}
         }
 
         match self.active_keys.get(&VirtualKeyCode::Q) {
             Some(true) => {
-                let mut old_position = self.active_camera.get_position();
-                old_position[1] -= 0.1;
-                self.active_camera.set_position(old_position);
+                let mut old_position = self.active_camera.transform.get_position();
+                old_position.y -= 0.1;
+                self.active_camera.transform.set_position(old_position);
             },
             _ => {}
         }
 
         match self.active_keys.get(&VirtualKeyCode::E) {
             Some(true) => {
-                let mut old_position = self.active_camera.get_position();
-                old_position[1] += 0.1;
-                self.active_camera.set_position(old_position);
+                let mut old_position = self.active_camera.transform.get_position();
+                old_position.y += 0.1;
+                self.active_camera.transform.set_position(old_position);
             },
             _ => {}
         }
@@ -170,13 +182,27 @@ impl Game {
                 [1.0, 0.0, 0.0, 0.0],
                 [0.0, 1.0, 0.0, 0.0],
                 [0.0, 0.0, 1.0, 0.0],
-                [0.0, 0.0, 2.0, 1.0f32]
+                [0.0, 0.0, 0.0, 1.0f32]
             ],
             tex: glium::uniforms::Sampler(&texture, behavior),
 
-            view: self.active_camera.get_view_matrix(&[0.0, 1.0, 0.0]),
+            view: self.active_camera.transform.get_matrix(),
             perspective: self.active_camera.get_perspective(),
-            camera_position: self.active_camera.get_position()
+            camera_position: *self.active_camera.transform.get_position().coords.as_ref()
+        };
+
+        let uniforms1 = uniform! {
+            model: [
+                [1.0, 0.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0, 0.0],
+                [0.0, 0.0, 1.0, 0.0],
+                [0.0, 0.0, 5.0, 1.0f32]
+            ],
+            tex: glium::uniforms::Sampler(&texture, behavior),
+
+            view: self.active_camera.transform.get_matrix(),
+            perspective: self.active_camera.get_perspective(),
+            camera_position: *self.active_camera.transform.get_position().coords.as_ref()
         };
 
         let params = glium::DrawParameters {
@@ -185,6 +211,7 @@ impl Game {
                 write: true,
                 .. Default::default()
             },
+            backface_culling: glium::draw_parameters::BackfaceCullingMode::CullClockwise,
             .. Default::default()
         };
 
@@ -193,6 +220,14 @@ impl Game {
             &model.indices,
             &model.shader, 
             &uniforms, 
+            &params
+        ).unwrap();
+
+        target.draw(
+            &model.vertices, 
+            &model.indices,
+            &model.shader, 
+            &uniforms1, 
             &params
         ).unwrap();
 
@@ -219,7 +254,14 @@ impl Game {
                 match input.virtual_keycode {
                     Some(key) => {
                         if (pressed && key == VirtualKeyCode::LAlt) {
-                            self.cursor_locked = !self.cursor_locked;
+                            match self.cursor_locked {
+                                MouseState::Unlocked => {
+                                    self.cursor_locked = MouseState::NeedsLocked;
+                                },
+                                _ => {
+                                    self.cursor_locked = MouseState::Unlocked;
+                                }
+                            }
                         }
 
                         self.active_keys.insert(key, pressed);
@@ -240,8 +282,20 @@ impl Game {
 
                 // Rotate the camera
 
-                if (self.cursor_locked && self.window_focused) {
-                    self.active_camera.rotate(nalgebra::Vector3::new(y_diff * 0.01 * self.delta_time, -x_diff * 0.01 * self.delta_time, 0.0));
+                
+                if (self.cursor_locked == MouseState::Locked && self.window_focused) {
+                    self.active_camera.transform.rotate_local(
+                        nalgebra::Vector3::new(-y_diff * 0.01 * self.delta_time, -x_diff * 0.01 * self.delta_time, 0.0)
+                    );
+
+                    // Clamp X rotation
+                    let mut old_rotation = self.active_camera.transform.get_rotation();
+                    old_rotation.x = old_rotation.x.min(1.5).max(-1.5);
+                    self.active_camera.transform.set_rotation(old_rotation);
+
+                    drop(window);
+
+                    self.center_cursor();
                 }
             },
             _ => return
@@ -280,25 +334,35 @@ impl Game {
         return false;
     }
 
-    pub fn window_update(&mut self) {
+    pub fn center_cursor(&mut self) {
         let window = self.display.as_ref().unwrap().gl_window();
         let (width, height) = self.display.as_ref().unwrap().get_framebuffer_dimensions();
 
         let x = (width as f32 / 2.0) as i32;
         let y = (height as f32 / 2.0) as i32;
     
-        self.display.as_ref().unwrap().gl_window().window().set_cursor_visible(!(self.window_focused && self.cursor_locked));
+        self.display.as_ref().unwrap().gl_window().window().set_cursor_visible(!(self.window_focused && (self.cursor_locked != MouseState::Unlocked)));
 
-        if (self.window_focused && self.cursor_locked) {
-            match window.window().set_cursor_position(glutin::dpi::LogicalPosition::new(x, y)) {
-                Ok(_) => {
-                    match window.window().set_cursor_grab(glutin::window::CursorGrabMode::Confined) {
-                        _ => {}
-                    }
+        match window.window().set_cursor_position(glutin::dpi::LogicalPosition::new(x, y)) {
+            Ok(_) => {
+                match window.window().set_cursor_grab(glutin::window::CursorGrabMode::Confined) {
+                    _ => {}
                 }
-                _ => {}
             }
-        } else {
+            _ => {}
+        }
+    }
+
+    pub fn window_update(&mut self) {
+        if (self.cursor_locked == MouseState::NeedsLocked) {
+            self.center_cursor();
+            self.cursor_locked = MouseState::Locked;
+        }
+
+        let window = self.display.as_ref().unwrap().gl_window();
+
+        if (self.cursor_locked == MouseState::Unlocked) {
+            self.display.as_ref().unwrap().gl_window().window().set_cursor_visible(true);
             match window.window().set_cursor_grab(glutin::window::CursorGrabMode::None) {
                 _ => {}
             }

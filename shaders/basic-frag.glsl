@@ -42,7 +42,7 @@ void main() {
 
     vec3 light_direction = vec3(-0.2, 0.8, 0.1);
 
-    float lum = max(dot(normalize(v_normal), normalize(light_direction)), 0.5);
+    float lum = max(dot(normalize(v_normal), normalize(light_direction)), 0.25);
     vec3 color_r = (0.3 + 0.7 * lum) * vec3(1.0, 1.0, 1.0) * light_color;
 
     // Add a fog effect depending on the distance from the camera
