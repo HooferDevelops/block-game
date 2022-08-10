@@ -255,17 +255,17 @@ impl Game {
 
                 let window_size = window.window().inner_size();
 
-                let (x, y) = (position.x as f32, position.y as f32);
-                let (wx, wy) = (window_size.width as f32, window_size.height as f32);
+                let (x, y) = (position.x as i32, position.y as i32);
+                
+                let (wx, wy) = (window_size.width as i32, window_size.height as i32);
 
-                let (x_diff, y_diff) = (x - wx / 2.0, y - wy / 2.0);
+                let (x_diff, y_diff) = (x - wx / 2, y - wy / 2);
 
                 // Rotate the camera
-
                 
                 if (self.cursor_locked == MouseState::Locked && self.window_focused) {
                     self.active_camera.transform.rotate_local(
-                        nalgebra::Vector3::new(-y_diff * 0.01, -x_diff * 0.01, 0.0)
+                        nalgebra::Vector3::new(-(y_diff as f32) * 0.01, -(x_diff as f32) * 0.01, 0.0)
                     );
 
                     // Clamp X rotation
@@ -273,9 +273,7 @@ impl Game {
                     old_rotation.x = old_rotation.x.min(1.5).max(-1.5);
                     self.active_camera.transform.set_rotation(old_rotation);
 
-                    drop(window);
-
-                    self.center_cursor();
+                    self.cursor_locked = MouseState::NeedsLocked;
                 }
             },
             _ => return
