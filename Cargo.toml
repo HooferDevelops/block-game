@@ -28,3 +28,6 @@ version = "0.7.0"
 
 [dependencies.fixedstep]
 version = "0.3.0"
+
+[dependencies.nalgebra]
+version = "0.31.1"
