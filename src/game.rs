@@ -4,7 +4,10 @@ use glium::Surface;
 use glium::glutin;
 use glium::glutin::event;
 use glium::glutin::event::VirtualKeyCode;
+
+#[cfg(target_os = "windows")]
 use glium::glutin::platform::windows::WindowBuilderExtWindows;
+
 use glium::uniform;
 
 use crate::textures;
@@ -12,7 +15,6 @@ use crate::shaders;
 use crate::models;
 use crate::camera;
 use crate::nalgebra;
-
 pub struct Game {
     shaders: shaders::Shaders,
     models: models::Models,
@@ -67,10 +69,16 @@ impl Game {
         let icon_rgba = self.textures.icon_rgba8("icon");
         let icon: Result<glutin::window::Icon, glutin::window::BadIcon> = glutin::window::Icon::from_rgba(icon_rgba, 400, 400);
         
+        #[cfg(target_os = "windows")]
         let window_builder = glutin::window::WindowBuilder::new()
         .with_inner_size(glutin::dpi::LogicalSize::new(width, height))
         .with_title(name)
         .with_taskbar_icon(Some(icon.unwrap()));
+
+        #[cfg(not(target_os = "windows"))]
+        let window_builder = glutin::window::WindowBuilder::new()
+        .with_inner_size(glutin::dpi::LogicalSize::new(width, height))
+        .with_title(name);
 
         let context_builder = glutin::ContextBuilder::new()
         .with_depth_buffer(24)
@@ -187,28 +195,34 @@ impl Game {
             .. Default::default()
         };
 
-        for n in 1..100 {
-            let uniforms = uniform! {
-                model: [
-                    [1.0, 0.0, 0.0, 0.0],
-                    [0.0, 1.0, 0.0, 0.0],
-                    [0.0, 0.0, 1.0, 0.0],
-                    [n as f32 * 3.0, 0.0, 0.0, 1.0f32]
-                ],
-                tex: glium::uniforms::Sampler(&texture, behavior),
-    
-                view: self.active_camera.transform.get_matrix(),
-                perspective: self.active_camera.get_perspective(),
-                camera_position: *self.active_camera.transform.get_position().coords.as_ref()
-            };
+        let cam_matrix = self.active_camera.transform.get_matrix();
+        let cam_persp = self.active_camera.get_perspective();
+        let cam_pos = *self.active_camera.transform.get_position().coords.as_ref();
 
-            target.draw(
-                &model.vertices, 
-                &model.indices,
-                &model.shader, 
-                &uniforms, 
-                &params
-            ).unwrap();
+        for n in 1..100 {
+            for i in 1..100 {
+                let uniforms = uniform! {
+                    model: [
+                        [1.0, 0.0, 0.0, 0.0],
+                        [0.0, 1.0, 0.0, 0.0],
+                        [0.0, 0.0, 1.0, 0.0],
+                        [n as f32 * 2.0, 0.0, i as f32 * 2.0, 1.0f32]
+                    ],
+                    tex: glium::uniforms::Sampler(&texture, behavior),
+        
+                    view: cam_matrix,
+                    perspective: cam_persp,
+                    camera_position: cam_pos
+                };
+    
+                target.draw(
+                    &model.vertices, 
+                    &model.indices,
+                    &model.shader, 
+                    &uniforms, 
+                    &params
+                ).unwrap();
+            }
         }
 
         target.finish().unwrap();
