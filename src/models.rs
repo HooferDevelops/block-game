@@ -31,6 +31,12 @@ impl Model {
             vertex.position = (vertex.position.0 + direction.x, vertex.position.1 + direction.y, vertex.position.2 + direction.z);
         }
     }
+
+    pub fn scale_local(&mut self, scale: f32) {
+        for vertex in &mut self.vertices {
+            vertex.position = (vertex.position.0 * scale, vertex.position.1 * scale, vertex.position.2 * scale);
+        }
+    }
 }
 
 impl Models {

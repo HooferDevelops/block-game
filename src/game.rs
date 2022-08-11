@@ -63,7 +63,10 @@ impl Game {
 
         self.cursor_locked = MouseState::NeedsLocked;
 
-        let mut mesh = meshbuilder::MeshBuilder::new(&self.shaders);
+        let mut mesh = meshbuilder::MeshBuilder::new();
+
+        mesh.set_texture(self.textures.get_texture("grass_texture", self.display.as_ref().unwrap()).unwrap());
+        mesh.set_shader(self.shaders.get_shader_program("basic", &self.display.as_ref().unwrap()).unwrap());
         
         for x in 1..1000 {
             for y in 1..1000 {
@@ -74,6 +77,24 @@ impl Game {
         }
 
         self.meshes.insert("grass".to_string(), mesh.build(self.display.as_ref().unwrap()));
+    }
+
+    // Update Skybox
+    pub fn update_skybox(&mut self) {
+        let mut sky = meshbuilder::MeshBuilder::new();
+        
+        sky.set_texture(self.textures.get_texture("sky", self.display.as_ref().unwrap()).unwrap());
+        sky.set_shader(self.shaders.get_shader_program("sky", &self.display.as_ref().unwrap()).unwrap());
+
+        let mut skybox = self.models.get_model("skybox").unwrap();
+
+        skybox.scale_local(1000.0);
+        skybox.translate_local(self.active_camera.transform.get_position().coords);
+
+        sky.add_model(skybox);
+
+
+        self.meshes.insert("sky".to_string(), sky.build(self.display.as_ref().unwrap()));
     }
 
     // Create information
@@ -105,46 +126,58 @@ impl Game {
     // Preload Shaders
     pub fn load_shaders(&mut self) {
         self.shaders.load_shader("basic").unwrap();
+        self.shaders.load_shader("cloud").unwrap();
+        self.shaders.load_shader("sky").unwrap();
+        
     }
 
     // Preload Models
     pub fn load_models(&mut self) {
-        self.models.load_model("cube").unwrap();
+        self.models.load_model("skybox").unwrap();
         self.models.load_model("grass_cube").unwrap();
     }
 
     // Preload Textures
     pub fn load_textures(&mut self) {
-        self.textures.load_image("test_texture").unwrap();
+        self.textures.load_image("sky").unwrap();
         self.textures.load_image("grass_texture").unwrap();
     }
 
     // Game tick
     pub fn game_tick(&mut self) -> bool {
+        let mut camera_speed: f32 = 0.4;
+
+        match self.active_keys.get(&VirtualKeyCode::LShift) {
+            Some(true) => {
+                camera_speed /= 4.0;
+            }
+            _ => {}
+        }
+
         match self.active_keys.get(&VirtualKeyCode::W) {
             Some(true) => {
-                self.active_camera.transform.translate_local(nalgebra::Vector3::new(0.0, 0.0, -0.1));
+                self.active_camera.transform.translate_local(nalgebra::Vector3::new(0.0, 0.0, -camera_speed));
             },
             _ => {}
         }
 
         match self.active_keys.get(&VirtualKeyCode::S) {
             Some(true) => {
-                self.active_camera.transform.translate_local(nalgebra::Vector3::new(0.0, 0.0, 0.1));
+                self.active_camera.transform.translate_local(nalgebra::Vector3::new(0.0, 0.0, camera_speed));
             },
             _ => {}
         }
 
         match self.active_keys.get(&VirtualKeyCode::A) {
             Some(true) => {
-                self.active_camera.transform.translate_local(nalgebra::Vector3::new(-0.1, 0.0, 0.0));
+                self.active_camera.transform.translate_local(nalgebra::Vector3::new(-camera_speed, 0.0, 0.0));
             },
             _ => {}
         }
 
         match self.active_keys.get(&VirtualKeyCode::D) {
             Some(true) => {
-                self.active_camera.transform.translate_local(nalgebra::Vector3::new(0.1, 0.0, 0.0));
+                self.active_camera.transform.translate_local(nalgebra::Vector3::new(camera_speed, 0.0, 0.0));
             },
             _ => {}
         }
@@ -152,7 +185,7 @@ impl Game {
         match self.active_keys.get(&VirtualKeyCode::Q) {
             Some(true) => {
                 let mut old_position = self.active_camera.transform.get_position();
-                old_position.y -= 0.1;
+                old_position.y -= camera_speed;
                 self.active_camera.transform.set_position(old_position);
             },
             _ => {}
@@ -161,7 +194,7 @@ impl Game {
         match self.active_keys.get(&VirtualKeyCode::E) {
             Some(true) => {
                 let mut old_position = self.active_camera.transform.get_position();
-                old_position.y += 0.1;
+                old_position.y += camera_speed;
                 self.active_camera.transform.set_position(old_position);
             },
             _ => {}
@@ -174,13 +207,13 @@ impl Game {
             _ => {}
         }
 
+        self.update_skybox();
+
         return false;
     }
 
     // Drawing tick
     pub fn draw_tick(&mut self) {
-        let texture = self.textures.get_texture("grass_texture", self.display.as_ref().unwrap()).unwrap();
-
         let mut target = self.display.as_ref().unwrap().draw();
         target.clear_color_and_depth((0.0, 0.0, 0.0, 1.0), 1.0);
         
@@ -215,13 +248,13 @@ impl Game {
                 view: cam_matrix,
                 perspective: cam_persp,
                 camera_position: cam_pos,
-                tex: glium::uniforms::Sampler(&texture, behavior)
+                tex: glium::uniforms::Sampler(mesh.texture.as_ref().expect("No texture"), behavior)
             };
 
             target.draw(
-                &mesh.vertices, 
-                &mesh.indices, 
-                &self.shaders.get_shader_program("basic", &self.display.as_ref().unwrap()).unwrap(),
+                mesh.vertices.as_ref().expect("No vertices"), 
+                mesh.indices.as_ref().expect("No indices"), 
+                mesh.shader.as_ref().expect("No shader"),
                 &uniforms, 
                 &params
             ).unwrap();
