@@ -34,7 +34,6 @@ impl Textures {
         self.loaded_textures.insert(file_name.to_owned(), Texture {
             rgba8: loaded_image,
             dimensions: dimensions
-            //Image: glium::texture::RawImage2d::from_raw_rgba_reversed(&loaded_image.into_raw(), dimensions)
         });
 
         Ok(true)

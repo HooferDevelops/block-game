@@ -1,4 +1,3 @@
-use crate::shaders;
 use crate::models;
 
 pub struct Mesh {
@@ -39,14 +38,6 @@ impl MeshBuilder {
             indices: Vec::new(),
             mesh: Mesh { vertices: Option::None, indices: Option::None, shader: Option::None, texture: Option::None }
         }
-    }
-    
-    pub fn add_vertex(&mut self, vertex: models::Vertex) {
-        //self.vertices.push(vertex);
-    }
-    
-    pub fn add_index(&mut self, index: u32) {
-        //self.indices.push(index);
     }
 
     pub fn set_shader(&mut self, shader: glium::Program) {

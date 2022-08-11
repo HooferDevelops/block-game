@@ -154,57 +154,33 @@ impl Game {
             _ => {}
         }
 
-        match self.active_keys.get(&VirtualKeyCode::W) {
-            Some(true) => {
-                self.active_camera.transform.translate_local(nalgebra::Vector3::new(0.0, 0.0, -camera_speed));
-            },
-            _ => {}
-        }
-
-        match self.active_keys.get(&VirtualKeyCode::S) {
-            Some(true) => {
-                self.active_camera.transform.translate_local(nalgebra::Vector3::new(0.0, 0.0, camera_speed));
-            },
-            _ => {}
-        }
-
-        match self.active_keys.get(&VirtualKeyCode::A) {
-            Some(true) => {
-                self.active_camera.transform.translate_local(nalgebra::Vector3::new(-camera_speed, 0.0, 0.0));
-            },
-            _ => {}
-        }
-
-        match self.active_keys.get(&VirtualKeyCode::D) {
-            Some(true) => {
-                self.active_camera.transform.translate_local(nalgebra::Vector3::new(camera_speed, 0.0, 0.0));
-            },
-            _ => {}
-        }
-
-        match self.active_keys.get(&VirtualKeyCode::Q) {
-            Some(true) => {
-                let mut old_position = self.active_camera.transform.get_position();
-                old_position.y -= camera_speed;
-                self.active_camera.transform.set_position(old_position);
-            },
-            _ => {}
-        }
-
-        match self.active_keys.get(&VirtualKeyCode::E) {
-            Some(true) => {
-                let mut old_position = self.active_camera.transform.get_position();
-                old_position.y += camera_speed;
-                self.active_camera.transform.set_position(old_position);
-            },
-            _ => {}
-        }
-
-        match self.active_keys.get(&VirtualKeyCode::Escape) {
-            Some(true) => {
-                return true;
-            },
-            _ => {}
+        for (key, value) in self.active_keys.iter_mut() {
+            if *value {
+                match key {
+                    VirtualKeyCode::W => {
+                        self.active_camera.transform.translate_local(nalgebra::Vector3::new(0.0, 0.0, -camera_speed));
+                    }
+                    VirtualKeyCode::S => {
+                        self.active_camera.transform.translate_local(nalgebra::Vector3::new(0.0, 0.0, camera_speed));
+                    }
+                    VirtualKeyCode::A => {
+                        self.active_camera.transform.translate_local(nalgebra::Vector3::new(-camera_speed, 0.0, 0.0));
+                    }
+                    VirtualKeyCode::D => {
+                        self.active_camera.transform.translate_local(nalgebra::Vector3::new(camera_speed, 0.0, 0.0));
+                    }
+                    VirtualKeyCode::Q => {
+                        self.active_camera.transform.translate_local(nalgebra::Vector3::new(0.0, -camera_speed, 0.0));
+                    }
+                    VirtualKeyCode::E => {
+                        self.active_camera.transform.translate_local(nalgebra::Vector3::new(0.0, camera_speed, 0.0));
+                    }
+                    VirtualKeyCode::Escape => {
+                        return true;
+                    }
+                    _ => {}
+                }
+            }
         }
 
         self.update_skybox();
@@ -259,32 +235,6 @@ impl Game {
                 &params
             ).unwrap();
         }
-
-        /*for n in 1..10 {
-            for i in 1..10 {
-                let uniforms = uniform! {
-                    model: [
-                        [1.0, 0.0, 0.0, 0.0],
-                        [0.0, 1.0, 0.0, 0.0],
-                        [0.0, 0.0, 1.0, 0.0],
-                        [n as f32 * 2.0, 0.0, i as f32 * 2.0, 1.0f32]
-                    ],
-                    tex: glium::uniforms::Sampler(&texture, behavior),
-        
-                    view: cam_matrix,
-                    perspective: cam_persp,
-                    camera_position: cam_pos
-                };
-    
-                target.draw(
-                    &model.vertices, 
-                    &model.indices,
-                    &model.shader, 
-                    &uniforms, 
-                    &params
-                ).unwrap();
-            }
-        }*/
 
         target.finish().unwrap();
     }
