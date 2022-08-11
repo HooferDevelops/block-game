@@ -15,14 +15,22 @@ glium::implement_vertex!(Vertex, position, normal, tex_coords);
 
 static MODELS: Dir<'_> = include_dir!("models");
 
+#[derive(Clone)]
 pub struct Model {
-    pub vertices: glium::vertex::VertexBuffer<Vertex>,
-    pub indices: glium::index::IndexBuffer<u32>,
-    pub shader: glium::Program
+    pub vertices: Vec<Vertex>,
+    pub indices: Vec<u32>
 }
 
 pub struct Models {
     loaded_models: HashMap<String, Model>
+}
+
+impl Model {
+    pub fn translate_local(&mut self, direction: nalgebra::Vector3<f32>) {
+        for vertex in &mut self.vertices {
+            vertex.position = (vertex.position.0 + direction.x, vertex.position.1 + direction.y, vertex.position.2 + direction.z);
+        }
+    }
 }
 
 impl Models {
@@ -32,14 +40,11 @@ impl Models {
         }
     }
 
-    pub fn load_model(&mut self, file_name: &str, shader: glium::Program, display: &glium::Display) -> Result<bool, String> {
+    pub fn load_model(&mut self, file_name: &str) -> Result<bool, String> {
         let model_name = file_name.to_owned() + ".obj";
 
         let model_source = MODELS.get_file(model_name.to_owned()).unwrap();
         let loaded_model: obj::Obj<obj::TexturedVertex, u32> = obj::load_obj(model_source.contents()).unwrap();
-
-        let indices: glium::index::IndexBuffer<u32> = glium::index::IndexBuffer::new(display, glium::index::PrimitiveType::TrianglesList, &loaded_model.indices).unwrap();
-
 
         let vertices: Vec<Vertex> = loaded_model.vertices.iter().map(|v: &obj::TexturedVertex| {
             Vertex {
@@ -48,18 +53,17 @@ impl Models {
                 tex_coords: [v.texture[0], v.texture[1]]
             }
         }).collect();
-        
-        let vertex_buffer = glium::vertex::VertexBuffer::new(display, &vertices).unwrap();
 
-        self.loaded_models.insert(file_name.to_owned(), Model { vertices: vertex_buffer, shader: shader, indices: indices });
+        self.loaded_models.insert(file_name.to_owned(), Model { vertices: vertices, indices: loaded_model.indices });
 
         Ok(true)
     }
 
-    pub fn get_model(&mut self, model_name: &str) -> Result<&Model, String> {
+
+    pub fn get_model(&mut self, model_name: &str) -> Result<Model, String> {
         match self.loaded_models.get(model_name) {
             Some(model) => {
-                Ok(model)
+                Ok(model.clone())
             },
             None => {
                 Err("Model not found".to_owned())

@@ -47,7 +47,7 @@ void main() {
     vec3 color_r = (0.3 + 0.7 * lum) * vec3(1.0, 1.0, 1.0) * light_color;
 
     // Add a fog effect depending on the distance from the camera
-    float fog_factor = (1.0 - clamp(length(v_offset_position.xyz - camera_position) / 100.0, 0.0, 1.0));
+    float fog_factor = 1.0;//(1.0 - clamp(length(v_offset_position.xyz - camera_position) / 100.0, 0.0, 1.0));
 
     // Add a little bit of noise to the color
     float noise_factor = noise(v_position * 500000.0) / 4.0 + 0.75;

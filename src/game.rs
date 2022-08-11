@@ -11,6 +11,7 @@ use crate::textures;
 use crate::shaders;
 use crate::models;
 use crate::camera;
+use crate::meshbuilder;
 use crate::nalgebra;
 pub struct Game {
     shaders: shaders::Shaders,
@@ -23,7 +24,8 @@ pub struct Game {
     active_mouse_buttons: HashMap<glutin::event::MouseButton, bool>,
     window_focused: bool,
     cursor_locked: MouseState,
-    delta_time: f32
+    delta_time: f32,
+    meshes: HashMap<String, meshbuilder::Mesh>
 }
 
 #[derive(PartialEq)]
@@ -46,7 +48,8 @@ impl Game {
             active_mouse_buttons: HashMap::new(),
             window_focused: true,
             cursor_locked: MouseState::Unlocked,
-            delta_time: 1.0
+            delta_time: 1.0,
+            meshes: HashMap::new()
         }
     }
 
@@ -59,6 +62,18 @@ impl Game {
         window.window().focus_window();
 
         self.cursor_locked = MouseState::NeedsLocked;
+
+        let mut mesh = meshbuilder::MeshBuilder::new(&self.shaders);
+        
+        for x in 1..1000 {
+            for y in 1..1000 {
+                let mut cube = self.models.get_model("grass_cube").unwrap();
+                cube.translate_local(nalgebra::Vector3::new(x as f32 * 2.0, 0.0, y as f32 * 2.0));
+                mesh.add_model(cube);
+            }
+        }
+
+        self.meshes.insert("grass".to_string(), mesh.build(self.display.as_ref().unwrap()));
     }
 
     // Create information
@@ -94,8 +109,8 @@ impl Game {
 
     // Preload Models
     pub fn load_models(&mut self) {
-        self.models.load_model("cube", self.shaders.get_shader_program("basic", self.display.as_ref().unwrap()).unwrap(), self.display.as_ref().unwrap()).unwrap();
-        self.models.load_model("grass_cube", self.shaders.get_shader_program("basic", self.display.as_ref().unwrap()).unwrap(), self.display.as_ref().unwrap()).unwrap();
+        self.models.load_model("cube").unwrap();
+        self.models.load_model("grass_cube").unwrap();
     }
 
     // Preload Textures
@@ -164,7 +179,6 @@ impl Game {
 
     // Drawing tick
     pub fn draw_tick(&mut self) {
-        let model: &models::Model = self.models.get_model("grass_cube").unwrap();
         let texture = self.textures.get_texture("grass_texture", self.display.as_ref().unwrap()).unwrap();
 
         let mut target = self.display.as_ref().unwrap().draw();
@@ -190,7 +204,30 @@ impl Game {
         let cam_persp = self.active_camera.get_perspective();
         let cam_pos = *self.active_camera.transform.get_position().coords.as_ref();
 
-        for n in 1..10 {
+        for (_mesh_name, mesh) in &self.meshes {
+            let uniforms = uniform! {
+                model: [
+                    [1.0, 0.0, 0.0, 0.0],
+                    [0.0, 1.0, 0.0, 0.0],
+                    [0.0, 0.0, 1.0, 0.0],
+                    [0.0, 0.0, 0.0, 1.0f32]
+                ],
+                view: cam_matrix,
+                perspective: cam_persp,
+                camera_position: cam_pos,
+                tex: glium::uniforms::Sampler(&texture, behavior)
+            };
+
+            target.draw(
+                &mesh.vertices, 
+                &mesh.indices, 
+                &self.shaders.get_shader_program("basic", &self.display.as_ref().unwrap()).unwrap(),
+                &uniforms, 
+                &params
+            ).unwrap();
+        }
+
+        /*for n in 1..10 {
             for i in 1..10 {
                 let uniforms = uniform! {
                     model: [
@@ -214,7 +251,7 @@ impl Game {
                     &params
                 ).unwrap();
             }
-        }
+        }*/
 
         target.finish().unwrap();
     }

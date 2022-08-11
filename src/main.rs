@@ -11,6 +11,7 @@ mod textures;
 mod shaders;
 mod transform;
 mod models;
+mod meshbuilder;
 mod camera;
 mod game;
 
