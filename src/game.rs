@@ -5,9 +5,6 @@ use glium::glutin;
 use glium::glutin::event;
 use glium::glutin::event::VirtualKeyCode;
 
-#[cfg(target_os = "windows")]
-use glium::glutin::platform::windows::WindowBuilderExtWindows;
-
 use glium::uniform;
 
 use crate::textures;
@@ -69,16 +66,10 @@ impl Game {
         let icon_rgba = self.textures.icon_rgba8("icon");
         let icon: Result<glutin::window::Icon, glutin::window::BadIcon> = glutin::window::Icon::from_rgba(icon_rgba, 400, 400);
         
-        #[cfg(target_os = "windows")]
         let window_builder = glutin::window::WindowBuilder::new()
         .with_inner_size(glutin::dpi::LogicalSize::new(width, height))
         .with_title(name)
-        .with_taskbar_icon(Some(icon.unwrap()));
-
-        #[cfg(not(target_os = "windows"))]
-        let window_builder = glutin::window::WindowBuilder::new()
-        .with_inner_size(glutin::dpi::LogicalSize::new(width, height))
-        .with_title(name);
+        .with_window_icon(Some(icon.unwrap()));
 
         let context_builder = glutin::ContextBuilder::new()
         .with_depth_buffer(24)
