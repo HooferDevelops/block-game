@@ -199,8 +199,8 @@ impl Game {
         let cam_persp = self.active_camera.get_perspective();
         let cam_pos = *self.active_camera.transform.get_position().coords.as_ref();
 
-        for n in 1..100 {
-            for i in 1..100 {
+        for n in 1..10 {
+            for i in 1..10 {
                 let uniforms = uniform! {
                     model: [
                         [1.0, 0.0, 0.0, 0.0],
