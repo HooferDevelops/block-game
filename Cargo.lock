@@ -84,6 +84,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0d8c1fef690941d3e7788d328517591fecc684c084084702d6ff1641e993699a"
 
 [[package]]
+name = "block_game"
+version = "0.1.0"
+dependencies = [
+ "fixedstep",
+ "glium",
+ "image",
+ "include_dir",
+ "nalgebra",
+ "obj-rs",
+ "serde_json",
+ "spin_sleep",
+ "winres",
+]
+
+[[package]]
 name = "bumpalo"
 version = "3.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1124,21 +1139,6 @@ name = "once_cell"
 version = "1.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "18a6dbe30758c9f83eb00cbea4ac95966305f5a7772f3f42ebfc7fc7eddbd8e1"
-
-[[package]]
-name = "open_gl_rust"
-version = "0.1.0"
-dependencies = [
- "fixedstep",
- "glium",
- "image",
- "include_dir",
- "nalgebra",
- "obj-rs",
- "serde_json",
- "spin_sleep",
- "winres",
-]
 
 [[package]]
 name = "osmesa-sys"

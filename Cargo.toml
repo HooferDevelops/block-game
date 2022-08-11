@@ -1,5 +1,5 @@
 [package]
-name = "open_gl_rust"
+name = "block_game"
 version = "0.1.0"
 edition = "2021"
 
