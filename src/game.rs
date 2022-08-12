@@ -10,6 +10,7 @@ use glium::uniform;
 use crate::textures;
 use crate::shaders;
 use crate::models;
+use crate::cube;
 use crate::camera;
 use crate::meshbuilder;
 use crate::nalgebra;
@@ -65,18 +66,57 @@ impl Game {
 
         let mut mesh = meshbuilder::MeshBuilder::new();
 
-        mesh.set_texture(self.textures.get_texture("grass_texture", self.display.as_ref().unwrap()).unwrap());
+        mesh.set_texture(self.textures.get_texture("texture_atlas", self.display.as_ref().unwrap()).unwrap());
         mesh.set_shader(self.shaders.get_shader_program("basic", &self.display.as_ref().unwrap()).unwrap());
-        
-        for x in 1..1000 {
-            for y in 1..1000 {
-                let mut cube = self.models.get_model("grass_cube").unwrap();
-                cube.translate_local(nalgebra::Vector3::new(x as f32 * 2.0, 0.0, y as f32 * 2.0));
-                mesh.add_model(cube);
+
+        let mut dirt = cube::Cube::new();
+
+        for (_face_type, face) in dirt.faces.iter_mut() {
+            face.set_face_texture_offset(
+                (16.0 / 256.0, 16.0 / 256.0),
+                (0.0, 1.0)
+            );
+        }
+
+        let mut grass = cube::Cube::new();
+
+        for (face_type, face) in grass.faces.iter_mut() {
+            match face_type {
+                cube::Faces::Top => {
+                    face.set_face_texture_offset(
+                        (16.0 / 256.0, 16.0 / 256.0),
+                        (0.0 + (64.0 / 256.0), 1.0)
+                    );
+                },
+                cube::Faces::Bottom => {
+                    face.set_face_texture_offset(
+                        (16.0 / 256.0, 16.0 / 256.0),
+                        (0.0, 1.0)
+                    );
+                },
+                _ => {
+                    face.set_face_texture_offset(
+                        (16.0 / 256.0, 16.0 / 256.0),
+                        (0.0 + (32.0 / 256.0), 1.0)
+                    );
+                }
             }
         }
 
-        self.meshes.insert("grass".to_string(), mesh.build(self.display.as_ref().unwrap()));
+        for x in 1..100 {
+            for y in 1..100 {
+                let mut cube = dirt.clone();
+
+                cube.translate_local(nalgebra::Vector3::new(x as f32, 0.0, y as f32));
+                mesh.add_cube(cube);
+
+                let mut cube = grass.clone();
+                cube.translate_local(nalgebra::Vector3::new(x as f32, 1.0, y as f32));
+                mesh.add_cube(cube);
+            }
+        }
+
+        self.meshes.insert("flat".to_string(), mesh.build(self.display.as_ref().unwrap()));
     }
 
     // Update Skybox
@@ -92,7 +132,6 @@ impl Game {
         skybox.translate_local(self.active_camera.transform.get_position().coords);
 
         sky.add_model(skybox);
-
 
         self.meshes.insert("sky".to_string(), sky.build(self.display.as_ref().unwrap()));
     }
@@ -134,13 +173,12 @@ impl Game {
     // Preload Models
     pub fn load_models(&mut self) {
         self.models.load_model("skybox").unwrap();
-        self.models.load_model("grass_cube").unwrap();
     }
 
     // Preload Textures
     pub fn load_textures(&mut self) {
         self.textures.load_image("sky").unwrap();
-        self.textures.load_image("grass_texture").unwrap();
+        self.textures.load_image("texture_atlas").unwrap();
     }
 
     // Game tick
@@ -196,15 +234,19 @@ impl Game {
         let behavior = glium::uniforms::SamplerBehavior {
             minify_filter: glium::uniforms::MinifySamplerFilter::Nearest,
             magnify_filter: glium::uniforms::MagnifySamplerFilter::Nearest,
+            max_anisotropy: 1,
             ..Default::default()
         };
 
         let params = glium::DrawParameters {
+            //polygon_mode: glium::draw_parameters::PolygonMode::Line,
+            //line_width: Some(1.0),
             depth: glium::Depth {
                 test: glium::draw_parameters::DepthTest::IfLess,
                 write: true,
                 .. Default::default()
             },
+            //blend: glium::Blend::alpha_blending(),
             backface_culling: glium::draw_parameters::BackfaceCullingMode::CullClockwise,
             .. Default::default()
         };

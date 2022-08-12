@@ -1,4 +1,4 @@
-use crate::models;
+use crate::{models, cube};
 
 pub struct Mesh {
     pub vertices: Option<glium::vertex::VertexBuffer<models::Vertex>>,
@@ -57,6 +57,23 @@ impl MeshBuilder {
 
         self.vertices.extend_from_slice(&model.vertices);
         self.indices.extend_from_slice(&model.indices);
+    }
+
+    pub fn add(&mut self, vertices: Vec<models::Vertex>, mut indices: Vec<u32>) {
+        let i = self.vertices.len() as u32;
+
+        for index in &mut indices {
+            *index += i;
+        }
+
+        self.vertices.extend_from_slice(&vertices);
+        self.indices.extend_from_slice(&indices);
+    }
+
+    pub fn add_cube(&mut self, mut cube: cube::Cube) {
+        for (_face_type, face) in cube.faces.iter_mut() {
+            self.add(face.vertices.clone(), face.indices.clone());
+        }
     }
     
     pub fn build(mut self, display: &glium::Display) -> Mesh {

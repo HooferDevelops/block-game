@@ -2,7 +2,6 @@ use std::{collections::HashMap};
 use image::ImageBuffer;
 use include_dir::{include_dir, Dir};
 
-
 static TEXTURES: Dir<'_> = include_dir!("textures");
 
 struct Texture {

@@ -65,7 +65,6 @@ impl Models {
         Ok(true)
     }
 
-
     pub fn get_model(&mut self, model_name: &str) -> Result<Model, String> {
         match self.loaded_models.get(model_name) {
             Some(model) => {
