@@ -1,9 +1,14 @@
 use std::collections::HashMap;
+use std::time::SystemTime;
+use std::time::UNIX_EPOCH;
 
 use glium::Surface;
 use glium::glutin;
 use glium::glutin::event;
 use glium::glutin::event::VirtualKeyCode;
+
+use noise::Seedable;
+use noise::{NoiseFn, Perlin};
 
 use glium::uniform;
 
@@ -11,13 +16,16 @@ use crate::textures;
 use crate::shaders;
 use crate::models;
 use crate::cube;
+use crate::blockbuilder;
 use crate::camera;
 use crate::meshbuilder;
 use crate::nalgebra;
+
 pub struct Game {
     shaders: shaders::Shaders,
     models: models::Models,
     textures: textures::Textures,
+    blocks: HashMap<String, blockbuilder::Block>,
     active_camera: camera::Camera,
     display: Option<glium::Display>,
     game_loop: fixedstep::FixedStep,
@@ -42,6 +50,7 @@ impl Game {
             shaders: shaders::Shaders::new(),
             models: models::Models::new(),
             textures: textures::Textures::new(),
+            blocks: HashMap::new(),
             active_camera: camera::Camera::new(),
             display: None,
             game_loop: fixedstep::FixedStep::start(60.0),
@@ -69,50 +78,39 @@ impl Game {
         mesh.set_texture(self.textures.get_texture("texture_atlas", self.display.as_ref().unwrap()).unwrap());
         mesh.set_shader(self.shaders.get_shader_program("basic", &self.display.as_ref().unwrap()).unwrap());
 
-        let mut dirt = cube::Cube::new();
-
-        for (_face_type, face) in dirt.faces.iter_mut() {
-            face.set_face_texture_offset(
-                (16.0 / 256.0, 16.0 / 256.0),
-                (0.0, 1.0)
-            );
-        }
-
-        let mut grass = cube::Cube::new();
-
-        for (face_type, face) in grass.faces.iter_mut() {
-            match face_type {
-                cube::Faces::Top => {
-                    face.set_face_texture_offset(
-                        (16.0 / 256.0, 16.0 / 256.0),
-                        (0.0 + (64.0 / 256.0), 1.0)
-                    );
-                },
-                cube::Faces::Bottom => {
-                    face.set_face_texture_offset(
-                        (16.0 / 256.0, 16.0 / 256.0),
-                        (0.0, 1.0)
-                    );
-                },
-                _ => {
-                    face.set_face_texture_offset(
-                        (16.0 / 256.0, 16.0 / 256.0),
-                        (0.0 + (32.0 / 256.0), 1.0)
-                    );
-                }
-            }
-        }
+        let time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis();
+        let perlin = Perlin::new().set_seed(time as u32);
 
         for x in 1..100 {
             for y in 1..100 {
-                let mut cube = dirt.clone();
+                let mut noise = perlin.get([(x as f64 / 4.0) * 0.1, (y as f64 / 4.0) * 0.1]);
+                noise = noise * 2.0 - 1.0;
+                noise = f64::floor(noise);
 
-                cube.translate_local(nalgebra::Vector3::new(x as f32, 0.0, y as f32));
-                mesh.add_cube(cube);
+                
 
-                let mut cube = grass.clone();
-                cube.translate_local(nalgebra::Vector3::new(x as f32, 1.0, y as f32));
-                mesh.add_cube(cube);
+                for cube in &self.blocks.get("grass").unwrap().cubes {
+                    let mut cube_clone = cube.clone();
+
+                    cube_clone.translate_local(nalgebra::Point3::new(x as f32, noise as f32, y as f32));
+                    mesh.add_cube(cube_clone);
+                }
+
+                // Fill in the dirt below the grass
+                for i in 1..25 {
+                    let z = noise as f32 - i as f32;
+
+                    if (z <= -15.0) {
+                        break;
+                    }
+
+                    for cube in &self.blocks.get("dirt").unwrap().cubes {
+                        let mut cube_clone = cube.clone();
+    
+                        cube_clone.translate_local(nalgebra::Point3::new(x as f32, z, y as f32));
+                        mesh.add_cube(cube_clone);
+                    }
+                }
             }
         }
 
@@ -160,6 +158,56 @@ impl Game {
         self.active_camera.update_aspect_ratio(width, height);
 
         self.display = Some(new_display);
+    }
+
+    // Preload blocks
+    pub fn load_blocks(&mut self) {
+        let mut grass_cube = cube::Cube::new();
+
+        for (face_type, face) in grass_cube.faces.iter_mut() {
+            match face_type {
+                cube::Faces::Top => {
+                    face.set_face_texture_offset(
+                        (16.0 / 256.0, 16.0 / 256.0),
+                        (0.0 + (64.0 / 256.0), 1.0)
+                    );
+                },
+                cube::Faces::Bottom => {
+                    face.set_face_texture_offset(
+                        (16.0 / 256.0, 16.0 / 256.0),
+                        (0.0, 1.0)
+                    );
+                },
+                _ => {
+                    face.set_face_texture_offset(
+                        (16.0 / 256.0, 16.0 / 256.0),
+                        (0.0 + (32.0 / 256.0), 1.0)
+                    );
+                }
+            }
+        }
+
+        blockbuilder::BlockBuilder::new()
+            .set_name("grass")
+            .set_transparent(false)
+            .add_cube(grass_cube)
+            .build(Some(&mut self.blocks));
+
+        let mut dirt_cube = cube::Cube::new();
+
+        for (_face_type, face) in dirt_cube.faces.iter_mut() {
+            face.set_face_texture_offset(
+                (16.0 / 256.0, 16.0 / 256.0),
+                (0.0, 1.0)
+            );
+        }
+
+        blockbuilder::BlockBuilder::new()
+            .set_name("dirt")
+            .set_transparent(false)
+            .add_cube(dirt_cube)
+            .build(Some(&mut self.blocks));
+
     }
 
     // Preload Shaders

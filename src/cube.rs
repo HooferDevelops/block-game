@@ -295,7 +295,7 @@ impl Cube {
         }
     }
 
-    pub fn translate_local(&mut self, direction: nalgebra::Vector3<f32>) {
+    pub fn translate_local(&mut self, direction: nalgebra::Point3<f32>) {
         for face in self.faces.values_mut() {
             for vertex in face.vertices.iter_mut() {
                 vertex.position = (vertex.position.0 + direction.x, vertex.position.1 + direction.y, vertex.position.2 + direction.z);
